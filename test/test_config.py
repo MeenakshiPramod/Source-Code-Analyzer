@@ -1,3 +1,3 @@
-from utils.config import OPENAI_API_KEY
+# from utils.config import OPENAI_API_KEY
 
-print("API Key Loaded:", OPENAI_API_KEY[:10], "...")
+# print("API Key Loaded:", OPENAI_API_KEY[:10], "...")
