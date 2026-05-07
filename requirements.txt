@@ -6,7 +6,8 @@ gitpython
 tiktoken
 python-dotenv
 langchain-community
-langchain-openai
+langchain-groq
 sentence-transformers 
 langchain-huggingface
 langchain-chroma
+langchain-classic

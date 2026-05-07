@@ -1,12 +1,12 @@
 import os
 from dotenv import load_dotenv
 
-# Load .env file
+# Load .env
 load_dotenv()
 
-# Get API key
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+# API Keys
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
-# Optional check
-if not OPENAI_API_KEY:
-    raise ValueError("OPENAI_API_KEY is not set in .env file")
+# Validation
+if not GROQ_API_KEY:
+    raise ValueError("GROQ_API_KEY is not set in .env")
