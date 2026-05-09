@@ -1,10 +1,15 @@
 from flask import Flask
-
+from flask_cors import CORS
 
 def create_app():
+
     app = Flask(__name__)
 
-    from backend.app.routes import main
+    # Enable CORS
+    CORS(app)
+
+    # Register routes
+    from app.routes import main
     app.register_blueprint(main)
 
     return app
