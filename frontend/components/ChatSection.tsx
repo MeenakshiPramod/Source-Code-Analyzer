@@ -12,6 +12,12 @@ import {
 
 import API from "@/services/api";
 
+import TypingIndicator from "./TypingIndicator";
+
+import { typeWriterEffect } from "@/utils/typewriter";
+
+
+
 interface Message {
   role: "user" | "ai";
   content: string;
@@ -26,6 +32,8 @@ export default function ChatSection() {
   const [messages, setMessages] = useState<Message[]>([]);
 
   const [loading, setLoading] = useState(false);
+
+  const [typing, setTyping] = useState(false);
 
   const [repoAnalyzed, setRepoAnalyzed] = useState(false);
 
@@ -103,13 +111,37 @@ export default function ChatSection() {
         }
       );
 
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "ai",
-          content: response.data.answer
-        }
-      ]);
+      setTyping(true);
+
+const aiMessage = {
+  role: "ai" as const,
+  content: ""
+};
+
+setMessages((prev) => [
+  ...prev,
+  aiMessage
+]);
+
+await typeWriterEffect(
+  response.data.answer,
+  (typedText) => {
+
+    setMessages((prev) => {
+
+      const updated = [...prev];
+
+      updated[updated.length - 1] = {
+        role: "ai",
+        content: typedText
+      };
+
+      return updated;
+    });
+  }
+);
+
+setTyping(false);
 
     } catch (error: any) {
 
@@ -259,6 +291,14 @@ export default function ChatSection() {
 
           </motion.div>
         ))}
+
+        {typing && (
+
+  <div className="bg-white/5 border border-white/10 rounded-3xl w-fit">
+    <TypingIndicator />
+  </div>
+
+)}
 
       </div>
 
