@@ -16,7 +16,7 @@ import TypingIndicator from "./TypingIndicator";
 
 import { typeWriterEffect } from "@/utils/typewriter";
 
-
+import MarkdownRenderer from "./MarkdownRenderer";
 
 interface Message {
   role: "user" | "ai";
@@ -286,7 +286,7 @@ setTyping(false);
           >
 
             <p className="text-zinc-100 whitespace-pre-wrap leading-relaxed">
-              {message.content}
+              {<MarkdownRenderer content={message.content} />}
             </p>
 
           </motion.div>
