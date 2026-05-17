@@ -120,15 +120,29 @@ def chat():
 
         # Ask AI
         response = qa_chain.invoke({
-            "query": question
+        "question": question
         })
 
         # IMPORTANT FIX
-        answer = response["result"]
+        answer = response["answer"]
+
+        source_documents = response.get(
+            "source_documents", []
+        )
+
+        sources = []
+
+        for doc in source_documents:
+            source = doc.metadata.get("source", "Unknown")
+
+            if source not in sources:
+                sources.append(source)
+            
 
         return jsonify({
             "question": question,
-            "answer": answer
+            "answer": answer,
+            "sources": sources
         })
 
     except Exception as e:

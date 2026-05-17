@@ -21,6 +21,7 @@ import MarkdownRenderer from "./MarkdownRenderer";
 interface Message {
   role: "user" | "ai";
   content: string;
+  sources?: string[];
 }
 
 export default function ChatSection() {
@@ -59,7 +60,8 @@ export default function ChatSection() {
           role: "ai",
           content:
             response.data.message +
-            ` (${response.data.total_chunks} chunks indexed)`
+            ` (${response.data.total_chunks} chunks indexed)`,
+          sources: response.data.sources || []
         }
       ]);
 
@@ -115,7 +117,8 @@ export default function ChatSection() {
 
 const aiMessage = {
   role: "ai" as const,
-  content: ""
+  content: "",
+  sources: []
 };
 
 setMessages((prev) => [
@@ -133,7 +136,8 @@ await typeWriterEffect(
 
       updated[updated.length - 1] = {
         role: "ai",
-        content: typedText
+        content: typedText,
+        sources: response.data.sources || []
       };
 
       return updated;
@@ -285,9 +289,41 @@ setTyping(false);
             }`}
           >
 
-            <p className="text-zinc-100 whitespace-pre-wrap leading-relaxed">
-              {<MarkdownRenderer content={message.content} />}
-            </p>
+            <div className="text-zinc-100 whitespace-pre-wrap leading-relaxed">
+
+              <MarkdownRenderer content={message.content} />
+
+              {message.sources &&
+                message.sources.length > 0 && (
+
+                  <div className="mt-4 border-t border-white/10 pt-3">
+
+                    <p className="text-xs text-zinc-400 mb-2">
+                      Sources
+                    </p>
+
+                    <div className="flex flex-wrap gap-2">
+
+                      {message.sources.map((source, index) => (
+
+                        <div
+                          key={index}
+                          className="text-xs bg-white/5 border border-white/10 px-3 py-1 rounded-full text-zinc-300"
+                        >
+
+                          {source}
+
+                        </div>
+
+                      ))}
+
+                    </div>
+
+                  </div>
+
+                )}
+
+            </div>
 
           </motion.div>
         ))}
