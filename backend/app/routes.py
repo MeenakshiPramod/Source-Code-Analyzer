@@ -133,10 +133,21 @@ def chat():
         sources = []
 
         for doc in source_documents:
-            source = doc.metadata.get("source", "Unknown")
 
-            if source not in sources:
-                sources.append(source)
+            source = doc.metadata.get(
+                "source",
+                "Unknown"
+            )
+
+            source_name = source.split("\\")[-1]
+
+            source_data = {
+                "file": source_name,
+                "content": doc.page_content
+            }
+
+            if source_data not in sources:
+                sources.append(source_data)
             
 
         return jsonify({

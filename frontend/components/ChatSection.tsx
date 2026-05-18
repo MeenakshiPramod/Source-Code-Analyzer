@@ -18,10 +18,15 @@ import { typeWriterEffect } from "@/utils/typewriter";
 
 import MarkdownRenderer from "./MarkdownRenderer";
 
+interface Source {
+  file: string;
+  content: string;
+}
+
 interface Message {
   role: "user" | "ai";
   content: string;
-  sources?: string[];
+  sources?: Source[];
 }
 
 export default function ChatSection() {
@@ -37,6 +42,9 @@ export default function ChatSection() {
   const [typing, setTyping] = useState(false);
 
   const [repoAnalyzed, setRepoAnalyzed] = useState(false);
+
+  const [selectedSource, setSelectedSource] =
+  useState<Source | null>(null);
 
   // Analyze Repository
   const analyzeRepository = async () => {
@@ -115,11 +123,13 @@ export default function ChatSection() {
 
       setTyping(true);
 
-const aiMessage = {
-  role: "ai" as const,
+const aiMessage: Message = {
+  role: "ai",
   content: "",
   sources: []
 };
+
+
 
 setMessages((prev) => [
   ...prev,
@@ -304,16 +314,28 @@ setTyping(false);
 
                     <div className="flex flex-wrap gap-2">
 
-                      {message.sources.map((source, index) => (
+                     {message.sources.map((source, index) => (
 
-                        <div
+                        <button
                           key={index}
-                          className="text-xs bg-white/5 border border-white/10 px-3 py-1 rounded-full text-zinc-300"
+
+                          onClick={() => setSelectedSource(source)}
+
+                          className="
+                            text-xs
+                            bg-white/5
+                            hover:bg-blue-500/20
+                            border border-white/10
+                            px-3 py-1
+                            rounded-full
+                            text-zinc-300
+                            transition
+                          "
                         >
 
-                          {source}
+                          {source.file}
 
-                        </div>
+                        </button>
 
                       ))}
 
@@ -377,6 +399,81 @@ setTyping(false);
 
         </div>
       </div>
+      {selectedSource && (
+
+  <div
+    className="
+      fixed inset-0
+      bg-black/70
+      backdrop-blur-sm
+      flex items-center justify-center
+      z-50
+      p-6
+    "
+  >
+
+    <div
+      className="
+        bg-[#0f172a]
+        border border-white/10
+        rounded-2xl
+        w-full
+        max-w-4xl
+        max-h-[80vh]
+        overflow-hidden
+      "
+    >
+
+      {/* Header */}
+      <div
+        className="
+          flex items-center justify-between
+          px-6 py-4
+          border-b border-white/10
+        "
+      >
+
+        <h2 className="text-lg font-semibold text-white">
+
+          {selectedSource.file}
+
+        </h2>
+
+        <button
+          onClick={() => setSelectedSource(null)}
+          className="
+            text-zinc-400
+            hover:text-white
+            transition
+          "
+        >
+
+          ✕
+
+        </button>
+
+      </div>
+
+      {/* Content */}
+      <div
+        className="
+          p-6
+          overflow-y-auto
+          max-h-[70vh]
+        "
+      >
+
+        <MarkdownRenderer
+          content={`\`\`\`python\n${selectedSource.content}\n\`\`\``}
+        />
+
+      </div>
+
+    </div>
+
+  </div>
+
+)}
     </div>
   );
 }
