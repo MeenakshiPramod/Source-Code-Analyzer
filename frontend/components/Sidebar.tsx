@@ -1,109 +1,180 @@
 "use client";
 
-import {
-  GitBranch,
-  Database,
-  MessageSquare,
-  Sparkles,
-} from "lucide-react";
+import { MessageSquare } from "lucide-react";
 
-import { motion } from "framer-motion";
+import { ChatSession }
+from "@/types/chat";
 
-export default function Sidebar() {
+interface Props {
+
+  chatSessions: ChatSession[];
+
+  currentChatId: string;
+
+  onSelectChat: (
+    chat: ChatSession
+  ) => void;
+}
+
+export default function Sidebar({
+
+  chatSessions,
+
+  currentChatId,
+
+  onSelectChat,
+
+}: Props) {
+
   return (
-    <motion.div
-      initial={{ opacity: 0, x: -20 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ duration: 0.5 }}
-      className="w-80 h-screen border-r border-white/10 bg-white/5 backdrop-blur-xl p-6"
+
+    <div
+      className="
+        w-80
+        h-screen
+        border-r
+        border-white/10
+        bg-[#0B1120]
+        flex
+        flex-col
+      "
     >
-      {/* Logo */}
-      <div className="mb-12">
-        <div className="flex items-center gap-3 mb-4">
 
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
-            <Sparkles className="w-6 h-6 text-white" />
-          </div>
+      {/* Header */}
+      <div
+        className="
+          p-6
+          border-b
+          border-white/10
+        "
+      >
 
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight text-white">
-              CodeMind AI
-            </h1>
+        <h1
+          className="
+            text-2xl
+            font-bold
+            text-white
+          "
+        >
 
-            <p className="text-sm text-zinc-400">
-              Repository Intelligence
-            </p>
-          </div>
-        </div>
-      </div>
+          AI Repo Assistant
 
-     
-      {/* Navigation */}
-      <div className="space-y-4">
+        </h1>
 
-        <div className="group flex items-center gap-4 p-4 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/5 transition-all duration-300 cursor-pointer hover:scale-[1.02]">
+        <p
+          className="
+            text-zinc-400
+            text-sm
+            mt-1
+          "
+        >
 
-          <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center">
-            <GitBranch className="w-5 h-5 text-blue-400" />
-          </div>
+          Chat History
 
-          <div>
-            <h3 className="text-white font-medium">
-              Repository Analysis
-            </h3>
-
-            <p className="text-xs text-zinc-400">
-              Analyze GitHub repositories
-            </p>
-          </div>
-        </div>
-
-        <div className="group flex items-center gap-4 p-4 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/5 transition-all duration-300 cursor-pointer hover:scale-[1.02]">
-
-          <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center">
-            <MessageSquare className="w-5 h-5 text-purple-400" />
-          </div>
-
-          <div>
-            <h3 className="text-white font-medium">
-              AI Assistant
-            </h3>
-
-            <p className="text-xs text-zinc-400">
-              Conversational code analysis
-            </p>
-          </div>
-        </div>
-
-        <div className="group flex items-center gap-4 p-4 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/5 transition-all duration-300 cursor-pointer hover:scale-[1.02]">
-
-          <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center">
-            <Database className="w-5 h-5 text-emerald-400" />
-          </div>
-
-          <div>
-            <h3 className="text-white font-medium">
-              Vector Database
-            </h3>
-
-            <p className="text-xs text-zinc-400">
-              Semantic search indexing
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Bottom Card */}
-      <div className="mt-10 p-5 rounded-3xl bg-gradient-to-br from-blue-500/10 to-purple-500/10 border border-white/10">
-
-        <h3 className="text-white font-semibold mb-2">
-          AI-Powered Code Understanding
-        </h3>
-
-        <p className="text-sm text-zinc-400 leading-relaxed">
-          Analyze repositories with semantic search and conversational AI.
         </p>
+
       </div>
-    </motion.div>
+
+      {/* Chat List */}
+      <div
+        className="
+          flex-1
+          overflow-y-auto
+          p-4
+          space-y-3
+        "
+      >
+
+        {chatSessions.map((chat) => (
+
+          <button
+            key={chat.id}
+
+            onClick={() =>
+              onSelectChat(chat)
+            }
+
+            className={`
+              w-full
+              text-left
+              p-4
+              rounded-2xl
+              border
+              transition-all
+
+              ${
+                currentChatId ===
+                chat.id
+                  ? `
+                    bg-blue-500/20
+                    border-blue-500/30
+                  `
+                  : `
+                    bg-white/5
+                    border-white/10
+                    hover:bg-white/10
+                  `
+              }
+            `}
+          >
+
+            <div
+              className="
+                flex
+                items-center
+                gap-3
+              "
+            >
+
+              <MessageSquare
+                size={18}
+                className="
+                  text-blue-400
+                "
+              />
+
+              <div>
+
+                <p
+                  className="
+                    text-sm
+                    font-medium
+                    text-white
+                    truncate
+                  "
+                >
+
+                  {chat.title}
+
+                </p>
+
+                <p
+                  className="
+                    text-xs
+                    text-zinc-400
+                    mt-1
+                  "
+                >
+
+                  {
+                    new Date(
+                      chat.createdAt
+                    ).toLocaleDateString()
+                  }
+
+                </p>
+
+              </div>
+
+            </div>
+
+          </button>
+
+        ))}
+
+      </div>
+
+    </div>
+
   );
 }

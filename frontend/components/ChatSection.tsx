@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 import { motion } from "framer-motion";
 
@@ -18,16 +18,13 @@ import { typeWriterEffect } from "@/utils/typewriter";
 
 import MarkdownRenderer from "./MarkdownRenderer";
 
-interface Source {
-  file: string;
-  content: string;
-}
+import Sidebar from "./Sidebar";
 
-interface Message {
-  role: "user" | "ai";
-  content: string;
-  sources?: Source[];
-}
+import {
+  Message,
+  Source,
+  ChatSession,
+} from "@/types/chat";
 
 export default function ChatSection() {
 
@@ -44,7 +41,68 @@ export default function ChatSection() {
   const [repoAnalyzed, setRepoAnalyzed] = useState(false);
 
   const [selectedSource, setSelectedSource] =
-  useState<Source | null>(null);
+    useState<Source | null>(null);
+
+  const [chatSessions, setChatSessions] =
+    useState<ChatSession[]>([]);
+
+  const [currentChatId, setCurrentChatId] =
+    useState("");
+
+  // Load saved chats
+  useEffect(() => {
+
+    const savedChats = localStorage.getItem(
+      "ai-repo-chats"
+    );
+
+    if (savedChats) {
+
+      const parsedChats: ChatSession[] =
+        JSON.parse(savedChats);
+
+      setChatSessions(parsedChats);
+
+      if (parsedChats.length > 0) {
+
+        const latestChat = parsedChats[0];
+
+        setCurrentChatId(latestChat.id);
+
+        setMessages(latestChat.messages);
+      }
+    }
+
+  }, []);
+
+  // Save chats automatically
+  useEffect(() => {
+
+    localStorage.setItem(
+      "ai-repo-chats",
+      JSON.stringify(chatSessions)
+    );
+
+  }, [chatSessions]);
+
+  // Sync messages to current chat
+  useEffect(() => {
+
+    if (!currentChatId) return;
+
+    setChatSessions((prev) =>
+      prev.map((chat) =>
+
+        chat.id === currentChatId
+          ? {
+              ...chat,
+              messages,
+            }
+          : chat
+      )
+    );
+
+  }, [messages, currentChatId]);
 
   // Analyze Repository
   const analyzeRepository = async () => {
@@ -62,15 +120,34 @@ export default function ChatSection() {
         }
       );
 
-      setMessages((prev) => [
+      const newChat: ChatSession = {
+
+        id: Date.now().toString(),
+
+        title:
+          repoUrl.split("/").pop() ||
+          "Repository Chat",
+
+        messages: [],
+
+        createdAt: Date.now(),
+      };
+
+      setCurrentChatId(newChat.id);
+
+      setChatSessions((prev) => [
+        newChat,
         ...prev,
+      ]);
+
+      setMessages([
         {
           role: "ai",
           content:
             response.data.message +
             ` (${response.data.total_chunks} chunks indexed)`,
-          sources: response.data.sources || []
-        }
+          sources: [],
+        },
       ]);
 
       setRepoAnalyzed(true);
@@ -83,8 +160,9 @@ export default function ChatSection() {
           role: "ai",
           content:
             error.response?.data?.error ||
-            "Failed to analyze repository"
-        }
+            "Failed to analyze repository",
+          sources: [],
+        },
       ]);
 
     } finally {
@@ -104,8 +182,8 @@ export default function ChatSection() {
       ...prev,
       {
         role: "user",
-        content: userMessage
-      }
+        content: userMessage,
+      },
     ]);
 
     setQuestion("");
@@ -117,45 +195,44 @@ export default function ChatSection() {
       const response = await API.post(
         "/chat",
         {
-          question: userMessage
+          question: userMessage,
         }
       );
 
       setTyping(true);
 
-const aiMessage: Message = {
-  role: "ai",
-  content: "",
-  sources: []
-};
-
-
-
-setMessages((prev) => [
-  ...prev,
-  aiMessage
-]);
-
-await typeWriterEffect(
-  response.data.answer,
-  (typedText) => {
-
-    setMessages((prev) => {
-
-      const updated = [...prev];
-
-      updated[updated.length - 1] = {
+      const aiMessage: Message = {
         role: "ai",
-        content: typedText,
-        sources: response.data.sources || []
+        content: "",
+        sources: [],
       };
 
-      return updated;
-    });
-  }
-);
+      setMessages((prev) => [
+        ...prev,
+        aiMessage,
+      ]);
 
-setTyping(false);
+      await typeWriterEffect(
+        response.data.answer,
+        (typedText) => {
+
+          setMessages((prev) => {
+
+            const updated = [...prev];
+
+            updated[updated.length - 1] = {
+              role: "ai",
+              content: typedText,
+              sources:
+                response.data.sources || [],
+            };
+
+            return updated;
+          });
+        }
+      );
+
+      setTyping(false);
 
     } catch (error: any) {
 
@@ -165,8 +242,9 @@ setTyping(false);
           role: "ai",
           content:
             error.response?.data?.error ||
-            "Something went wrong"
-        }
+            "Something went wrong",
+          sources: [],
+        },
       ]);
 
     } finally {
@@ -177,303 +255,314 @@ setTyping(false);
 
   return (
 
-    <div className="flex-1 flex flex-col h-screen overflow-hidden">
+    <div className="flex h-screen w-full bg-[#020617] overflow-hidden">
 
-      {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="border-b border-white/10 backdrop-blur-xl bg-white/5 px-10 py-6"
-      >
+      <Sidebar
+        chatSessions={chatSessions}
+        currentChatId={currentChatId}
+        onSelectChat={(chat) => {
 
-        <div className="flex items-center justify-between">
+          setCurrentChatId(chat.id);
 
-          <div>
-            <h1 className="text-3xl font-bold text-white tracking-tight">
-              AI Repository Assistant
-            </h1>
+          setMessages(chat.messages);
+        }}
+      />
 
-            <p className="text-zinc-400 mt-2 text-sm">
-              Analyze repositories using RAG + Groq + ChromaDB
-            </p>
-          </div>
+      <div className="flex-1 flex flex-col overflow-hidden">
 
-          <div className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 px-4 py-2 rounded-full">
+        {/* Header */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="border-b border-white/10 backdrop-blur-xl bg-white/5 px-10 py-6"
+        >
 
-            <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
+          <div className="flex items-center justify-between">
 
-            <span className="text-emerald-300 text-sm font-medium">
-              AI Online
-            </span>
+            <div>
+              <h1 className="text-3xl font-bold text-white tracking-tight">
+                AI Repository Assistant
+              </h1>
 
-          </div>
-        </div>
-      </motion.div>
-
-      {/* Repository Input */}
-      <div className="px-10 py-6 border-b border-white/10">
-
-        <div className="flex gap-4">
-
-          <input
-            type="text"
-            placeholder="Enter GitHub repository URL..."
-            value={repoUrl}
-            onChange={(e) =>
-              setRepoUrl(e.target.value)
-            }
-            className="flex-1 bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white outline-none focus:border-blue-500"
-          />
-
-          <button
-            onClick={analyzeRepository}
-            disabled={loading}
-            className="px-6 py-4 rounded-2xl bg-gradient-to-r from-blue-500 to-purple-600 hover:scale-105 transition-all duration-300 font-medium"
-          >
-
-            {loading ? (
-              <Loader2 className="animate-spin" />
-            ) : (
-              "Analyze"
-            )}
-
-          </button>
-
-        </div>
-      </div>
-
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-10 py-8 space-y-6">
-
-        {messages.length === 0 && (
-
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="max-w-3xl"
-          >
-
-            <div className="bg-white/5 border border-white/10 backdrop-blur-xl rounded-3xl p-6">
-
-              <div className="flex items-center gap-3 mb-4">
-
-                <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-
-                  <Sparkles className="w-5 h-5 text-white" />
-
-                </div>
-
-                <div>
-
-                  <h3 className="font-semibold text-white">
-                    AI Assistant
-                  </h3>
-
-                  <p className="text-xs text-zinc-400">
-                    Powered by semantic search
-                  </p>
-
-                </div>
-              </div>
-
-              <p className="text-zinc-300 leading-relaxed">
-                Analyze any GitHub repository and ask architecture,
-                implementation, workflow, and business logic questions.
+              <p className="text-zinc-400 mt-2 text-sm">
+                Analyze repositories using RAG + Groq + ChromaDB
               </p>
-
-            </div>
-          </motion.div>
-        )}
-
-        {messages.map((message, index) => (
-
-          <motion.div
-            key={index}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className={`max-w-4xl rounded-3xl p-5 border ${
-              message.role === "user"
-                ? "ml-auto bg-blue-500/10 border-blue-500/20"
-                : "bg-white/5 border-white/10"
-            }`}
-          >
-
-            <div className="text-zinc-100 whitespace-pre-wrap leading-relaxed">
-
-              <MarkdownRenderer content={message.content} />
-
-              {message.sources &&
-                message.sources.length > 0 && (
-
-                  <div className="mt-4 border-t border-white/10 pt-3">
-
-                    <p className="text-xs text-zinc-400 mb-2">
-                      Sources
-                    </p>
-
-                    <div className="flex flex-wrap gap-2">
-
-                     {message.sources.map((source, index) => (
-
-                        <button
-                          key={index}
-
-                          onClick={() => setSelectedSource(source)}
-
-                          className="
-                            text-xs
-                            bg-white/5
-                            hover:bg-blue-500/20
-                            border border-white/10
-                            px-3 py-1
-                            rounded-full
-                            text-zinc-300
-                            transition
-                          "
-                        >
-
-                          {source.file}
-
-                        </button>
-
-                      ))}
-
-                    </div>
-
-                  </div>
-
-                )}
-
             </div>
 
-          </motion.div>
-        ))}
+            <div className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 px-4 py-2 rounded-full">
 
-        {typing && (
+              <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
 
-  <div className="bg-white/5 border border-white/10 rounded-3xl w-fit">
-    <TypingIndicator />
-  </div>
+              <span className="text-emerald-300 text-sm font-medium">
+                AI Online
+              </span>
 
-)}
+            </div>
+          </div>
+        </motion.div>
 
-      </div>
+        {/* Repository Input */}
+        <div className="px-10 py-6 border-b border-white/10">
 
-      {/* Input */}
-      <div className="border-t border-white/10 backdrop-blur-xl bg-white/5 px-10 py-6">
+          <div className="flex gap-4">
 
-        <div className="max-w-5xl mx-auto">
-
-          <div className="flex items-end gap-4 bg-white/5 border border-white/10 rounded-3xl p-4">
-
-            <textarea
-              rows={1}
-              value={question}
+            <input
+              type="text"
+              placeholder="Enter GitHub repository URL..."
+              value={repoUrl}
               onChange={(e) =>
-                setQuestion(e.target.value)
+                setRepoUrl(e.target.value)
               }
-              placeholder="Ask anything about the repository..."
-              className="flex-1 bg-transparent text-white placeholder:text-zinc-500 resize-none outline-none text-base"
+              className="flex-1 bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white outline-none focus:border-blue-500"
             />
 
             <button
-              onClick={askQuestion}
-              disabled={!repoAnalyzed || loading}
-              className="w-12 h-12 rounded-2xl bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center hover:scale-105 transition-all duration-300 disabled:opacity-50"
+              onClick={analyzeRepository}
+              disabled={loading}
+              className="px-6 py-4 rounded-2xl bg-gradient-to-r from-blue-500 to-purple-600 hover:scale-105 transition-all duration-300 font-medium text-white"
             >
 
               {loading ? (
-                <Loader2 className="w-5 h-5 text-white animate-spin" />
+                <Loader2 className="animate-spin" />
               ) : (
-                <ArrowUp className="w-5 h-5 text-white" />
+                "Analyze"
               )}
 
             </button>
 
           </div>
+        </div>
 
-          <p className="text-center text-xs text-zinc-500 mt-4">
-            AI responses are generated using repository context and semantic retrieval.
-          </p>
+        {/* Messages */}
+        <div className="flex-1 overflow-y-auto px-10 py-8 space-y-6">
+
+          {messages.length === 0 && (
+
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="max-w-3xl"
+            >
+
+              <div className="bg-white/5 border border-white/10 backdrop-blur-xl rounded-3xl p-6">
+
+                <div className="flex items-center gap-3 mb-4">
+
+                  <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+
+                    <Sparkles className="w-5 h-5 text-white" />
+
+                  </div>
+
+                  <div>
+
+                    <h3 className="font-semibold text-white">
+                      AI Assistant
+                    </h3>
+
+                    <p className="text-xs text-zinc-400">
+                      Powered by semantic search
+                    </p>
+
+                  </div>
+                </div>
+
+                <p className="text-zinc-300 leading-relaxed">
+                  Analyze any GitHub repository and ask architecture,
+                  implementation, workflow, and business logic questions.
+                </p>
+
+              </div>
+            </motion.div>
+          )}
+
+          {messages.map((message, index) => (
+
+            <motion.div
+              key={index}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className={`max-w-4xl rounded-3xl p-5 border ${
+                message.role === "user"
+                  ? "ml-auto bg-blue-500/10 border-blue-500/20"
+                  : "bg-white/5 border-white/10"
+              }`}
+            >
+
+              <div className="text-zinc-100 whitespace-pre-wrap leading-relaxed">
+
+                <MarkdownRenderer content={message.content} />
+
+                {message.sources &&
+                  message.sources.length > 0 && (
+
+                    <div className="mt-4 border-t border-white/10 pt-3">
+
+                      <p className="text-xs text-zinc-400 mb-2">
+                        Sources
+                      </p>
+
+                      <div className="flex flex-wrap gap-2">
+
+                        {message.sources.map((source, index) => (
+
+                          <button
+                            key={index}
+                            onClick={() => setSelectedSource(source)}
+                            className="
+                              text-xs
+                              bg-white/5
+                              hover:bg-blue-500/20
+                              border border-white/10
+                              px-3 py-1
+                              rounded-full
+                              text-zinc-300
+                              transition
+                            "
+                          >
+
+                            {source.file}
+
+                          </button>
+
+                        ))}
+
+                      </div>
+
+                    </div>
+
+                  )}
+
+              </div>
+
+            </motion.div>
+          ))}
+
+          {typing && (
+
+            <div className="bg-white/5 border border-white/10 rounded-3xl w-fit p-4">
+              <TypingIndicator />
+            </div>
+
+          )}
 
         </div>
+
+        {/* Input */}
+        <div className="border-t border-white/10 backdrop-blur-xl bg-white/5 px-10 py-6">
+
+          <div className="max-w-5xl mx-auto">
+
+            <div className="flex items-end gap-4 bg-white/5 border border-white/10 rounded-3xl p-4">
+
+              <textarea
+                rows={1}
+                value={question}
+                onChange={(e) =>
+                  setQuestion(e.target.value)
+                }
+                placeholder="Ask anything about the repository..."
+                className="flex-1 bg-transparent text-white placeholder:text-zinc-500 resize-none outline-none text-base"
+              />
+
+              <button
+                onClick={askQuestion}
+                disabled={!repoAnalyzed || loading}
+                className="w-12 h-12 rounded-2xl bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center hover:scale-105 transition-all duration-300 disabled:opacity-50"
+              >
+
+                {loading ? (
+                  <Loader2 className="w-5 h-5 text-white animate-spin" />
+                ) : (
+                  <ArrowUp className="w-5 h-5 text-white" />
+                )}
+
+              </button>
+
+            </div>
+
+            <p className="text-center text-xs text-zinc-500 mt-4">
+              AI responses are generated using repository context and semantic retrieval.
+            </p>
+
+          </div>
+        </div>
+
       </div>
+
+      {/* Source Modal */}
       {selectedSource && (
 
-  <div
-    className="
-      fixed inset-0
-      bg-black/70
-      backdrop-blur-sm
-      flex items-center justify-center
-      z-50
-      p-6
-    "
-  >
-
-    <div
-      className="
-        bg-[#0f172a]
-        border border-white/10
-        rounded-2xl
-        w-full
-        max-w-4xl
-        max-h-[80vh]
-        overflow-hidden
-      "
-    >
-
-      {/* Header */}
-      <div
-        className="
-          flex items-center justify-between
-          px-6 py-4
-          border-b border-white/10
-        "
-      >
-
-        <h2 className="text-lg font-semibold text-white">
-
-          {selectedSource.file}
-
-        </h2>
-
-        <button
-          onClick={() => setSelectedSource(null)}
+        <div
           className="
-            text-zinc-400
-            hover:text-white
-            transition
+            fixed inset-0
+            bg-black/70
+            backdrop-blur-sm
+            flex items-center justify-center
+            z-50
+            p-6
           "
         >
 
-          ✕
+          <div
+            className="
+              bg-[#0f172a]
+              border border-white/10
+              rounded-2xl
+              w-full
+              max-w-4xl
+              max-h-[80vh]
+              overflow-hidden
+            "
+          >
 
-        </button>
+            {/* Header */}
+            <div
+              className="
+                flex items-center justify-between
+                px-6 py-4
+                border-b border-white/10
+              "
+            >
 
-      </div>
+              <h2 className="text-lg font-semibold text-white">
+                {selectedSource.file}
+              </h2>
 
-      {/* Content */}
-      <div
-        className="
-          p-6
-          overflow-y-auto
-          max-h-[70vh]
-        "
-      >
+              <button
+                onClick={() => setSelectedSource(null)}
+                className="
+                  text-zinc-400
+                  hover:text-white
+                  transition
+                "
+              >
+                ✕
+              </button>
 
-        <MarkdownRenderer
-          content={`\`\`\`python\n${selectedSource.content}\n\`\`\``}
-        />
+            </div>
 
-      </div>
+            {/* Content */}
+            <div
+              className="
+                p-6
+                overflow-y-auto
+                max-h-[70vh]
+              "
+            >
 
-    </div>
+              <MarkdownRenderer
+                content={`\`\`\`python\n${selectedSource.content}\n\`\`\``}
+              />
 
-  </div>
+            </div>
 
-)}
+          </div>
+
+        </div>
+      )}
+
     </div>
   );
 }
