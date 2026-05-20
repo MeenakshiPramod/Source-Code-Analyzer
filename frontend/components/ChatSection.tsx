@@ -1,47 +1,65 @@
 "use client";
 
-import { useState, useEffect } from "react";
-
-import { motion } from "framer-motion";
-
-import {
-  ArrowUp,
-  Sparkles,
-  Loader2,
-} from "lucide-react";
-
-import API from "@/services/api";
-
-import TypingIndicator from "./TypingIndicator";
-
-import { typeWriterEffect } from "@/utils/typewriter";
-
-import MarkdownRenderer from "./MarkdownRenderer";
+import { useEffect, useRef, useState } from "react";
 
 import Sidebar from "./Sidebar";
 
+import MarkdownRenderer from "./MarkdownRenderer";
+
+import TypingIndicator from "./TypingIndicator";
+
 import {
-  Message,
-  Source,
+  analyzeRepository,
+  askQuestion,
+} from "@/services/api";
+
+import {
+  Send,
+  Loader2,
+  Sparkles,
+} from "lucide-react";
+
+import {
   ChatSession,
+  Message,
 } from "@/types/chat";
+
+const suggestedQuestions = [
+
+  "Explain project architecture",
+
+  "What technologies are used?",
+
+  "Explain Flask routing",
+
+  "Show folder structure",
+
+  "Explain authentication flow",
+
+  "What are the important modules?",
+
+];
 
 export default function ChatSection() {
 
-  const [repoUrl, setRepoUrl] = useState("");
+  // =========================
+  // STATES
+  // =========================
 
-  const [question, setQuestion] = useState("");
+  const [repoUrl, setRepoUrl] =
+    useState("");
 
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [question, setQuestion] =
+    useState("");
 
-  const [loading, setLoading] = useState(false);
+  const [messages, setMessages] =
+    useState<Message[]>([]);
 
-  const [typing, setTyping] = useState(false);
+  const [loading, setLoading] =
+    useState(false);
 
-  const [repoAnalyzed, setRepoAnalyzed] = useState(false);
-
-  const [selectedSource, setSelectedSource] =
-    useState<Source | null>(null);
+  const [isAnalyzed, setIsAnalyzed] =
+    useState(false);
 
   const [chatSessions, setChatSessions] =
     useState<ChatSession[]>([]);
@@ -49,12 +67,19 @@ export default function ChatSection() {
   const [currentChatId, setCurrentChatId] =
     useState("");
 
-  // Load saved chats
+  const messagesEndRef =
+    useRef<HTMLDivElement>(null);
+
+  // =========================
+  // LOAD CHATS
+  // =========================
+
   useEffect(() => {
 
-    const savedChats = localStorage.getItem(
-      "ai-repo-chats"
-    );
+    const savedChats =
+      localStorage.getItem(
+        "ai-repo-chats"
+      );
 
     if (savedChats) {
 
@@ -65,17 +90,25 @@ export default function ChatSection() {
 
       if (parsedChats.length > 0) {
 
-        const latestChat = parsedChats[0];
+        const firstChat =
+          parsedChats[0];
 
-        setCurrentChatId(latestChat.id);
+        setCurrentChatId(
+          firstChat.id
+        );
 
-        setMessages(latestChat.messages);
+        setMessages(
+          firstChat.messages
+        );
       }
     }
 
   }, []);
 
-  // Save chats automatically
+  // =========================
+  // SAVE CHATS
+  // =========================
+
   useEffect(() => {
 
     localStorage.setItem(
@@ -85,348 +118,617 @@ export default function ChatSection() {
 
   }, [chatSessions]);
 
-  // Sync messages to current chat
+  // =========================
+  // AUTO SCROLL
+  // =========================
+
   useEffect(() => {
 
-    if (!currentChatId) return;
+    messagesEndRef.current
+      ?.scrollIntoView({
+        behavior: "smooth",
+      });
 
-    setChatSessions((prev) =>
-      prev.map((chat) =>
+  }, [messages]);
 
-        chat.id === currentChatId
-          ? {
-              ...chat,
-              messages,
-            }
-          : chat
-      )
+  // =========================
+  // CREATE NEW CHAT
+  // =========================
+
+  const createNewChat = () => {
+
+    const newChat: ChatSession = {
+
+      id: Date.now().toString(),
+
+      title: "New Repository",
+
+      messages: [],
+
+      createdAt: Date.now(),
+    };
+
+    setChatSessions((prev) => [
+      newChat,
+      ...prev,
+    ]);
+
+    setCurrentChatId(
+      newChat.id
     );
 
-  }, [messages, currentChatId]);
+    setMessages([]);
 
-  // Analyze Repository
-  const analyzeRepository = async () => {
-
-    if (!repoUrl) return;
-
-    try {
-
-      setLoading(true);
-
-      const response = await API.post(
-        "/analyze",
-        {
-          repo_url: repoUrl,
-        }
-      );
-
-      const newChat: ChatSession = {
-
-        id: Date.now().toString(),
-
-        title:
-          repoUrl.split("/").pop() ||
-          "Repository Chat",
-
-        messages: [],
-
-        createdAt: Date.now(),
-      };
-
-      setCurrentChatId(newChat.id);
-
-      setChatSessions((prev) => [
-        newChat,
-        ...prev,
-      ]);
-
-      setMessages([
-        {
-          role: "ai",
-          content:
-            response.data.message +
-            ` (${response.data.total_chunks} chunks indexed)`,
-          sources: [],
-        },
-      ]);
-
-      setRepoAnalyzed(true);
-
-    } catch (error: any) {
-
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "ai",
-          content:
-            error.response?.data?.error ||
-            "Failed to analyze repository",
-          sources: [],
-        },
-      ]);
-
-    } finally {
-
-      setLoading(false);
-    }
-  };
-
-  // Ask AI
-  const askQuestion = async () => {
-
-    if (!question) return;
-
-    const userMessage = question;
-
-    setMessages((prev) => [
-      ...prev,
-      {
-        role: "user",
-        content: userMessage,
-      },
-    ]);
+    setRepoUrl("");
 
     setQuestion("");
 
-    try {
+    setIsAnalyzed(false);
+  };
+
+  // =========================
+  // SELECT CHAT
+  // =========================
+
+  const handleSelectChat = (
+    chat: ChatSession
+  ) => {
+
+    setCurrentChatId(chat.id);
+
+    setMessages(chat.messages);
+
+    setIsAnalyzed(
+      chat.messages.length > 0
+    );
+  };
+
+  // =========================
+  // UPDATE CHAT SESSION
+  // =========================
+
+  const updateChatSession = (
+    updatedMessages: Message[],
+    title?: string
+  ) => {
+
+    setChatSessions((prev) =>
+      prev.map((chat) => {
+
+        if (
+          chat.id === currentChatId
+        ) {
+
+          return {
+
+            ...chat,
+
+            messages:
+              updatedMessages,
+
+            title:
+              title || chat.title,
+          };
+        }
+
+        return chat;
+      })
+    );
+  };
+
+  // =========================
+  // ANALYZE REPOSITORY
+  // =========================
+
+  const handleAnalyzeRepository =
+    async () => {
+
+      if (!repoUrl.trim())
+        return;
 
       setLoading(true);
 
-      const response = await API.post(
-        "/chat",
-        {
-          question: userMessage,
-        }
-      );
+      try {
 
-      setTyping(true);
+        const response =
+          await analyzeRepository(
+            repoUrl
+          );
 
-      const aiMessage: Message = {
-        role: "ai",
-        content: "",
-        sources: [],
+        const aiMessage: Message = {
+
+          role: "ai",
+
+          content:
+            `${response.message} (${response.total_chunks} chunks indexed)`,
+        };
+
+        const updatedMessages: Message[] =
+          [
+            ...messages,
+            aiMessage,
+          ];
+
+        setMessages(
+          updatedMessages
+        );
+
+        updateChatSession(
+          updatedMessages,
+          repoUrl
+            .split("/")
+            .pop() ||
+            "Repository"
+        );
+
+        setIsAnalyzed(true);
+
+      } catch (error) {
+
+        const errorMessage: Message = {
+
+          role: "ai",
+
+          content:
+            "Failed to analyze repository",
+        };
+
+        const updatedMessages: Message[] =
+          [
+            ...messages,
+            errorMessage,
+          ];
+
+        setMessages(
+          updatedMessages
+        );
+
+        updateChatSession(
+          updatedMessages
+        );
+
+      } finally {
+
+        setLoading(false);
+      }
+    };
+
+  // =========================
+  // ASK QUESTION
+  // =========================
+
+  const handleAskQuestion =
+    async () => {
+
+      if (
+        !question.trim() ||
+        !isAnalyzed
+      ) {
+        return;
+      }
+
+      const currentQuestion =
+        question;
+
+      const userMessage: Message = {
+
+        role: "user",
+
+        content: currentQuestion,
       };
 
-      setMessages((prev) => [
-        ...prev,
-        aiMessage,
-      ]);
+      // IMPORTANT FIX
+      // Use functional update
+      // to avoid stale state
 
-      await typeWriterEffect(
-        response.data.answer,
-        (typedText) => {
+      const updatedMessages: Message[] =
+        [
+          ...messages,
+          userMessage,
+        ];
 
-          setMessages((prev) => {
-
-            const updated = [...prev];
-
-            updated[updated.length - 1] = {
-              role: "ai",
-              content: typedText,
-              sources:
-                response.data.sources || [],
-            };
-
-            return updated;
-          });
-        }
+      setMessages(
+        updatedMessages
       );
 
-      setTyping(false);
+      updateChatSession(
+        updatedMessages
+      );
 
-    } catch (error: any) {
+      setQuestion("");
 
-      setMessages((prev) => [
-        ...prev,
-        {
+      setLoading(true);
+
+      try {
+
+        const response =
+          await askQuestion(
+            currentQuestion
+          );
+
+        const aiMessage: Message = {
+
           role: "ai",
+
           content:
-            error.response?.data?.error ||
-            "Something went wrong",
-          sources: [],
-        },
-      ]);
+            response.answer,
 
-    } finally {
+          sources:
+            response.sources || [],
+        };
 
-      setLoading(false);
-    }
-  };
+        const finalMessages: Message[] =
+          [
+            ...updatedMessages,
+            aiMessage,
+          ];
+
+        setMessages(
+          finalMessages
+        );
+
+        updateChatSession(
+          finalMessages
+        );
+
+      } catch (error) {
+
+        const errorMessage: Message = {
+
+          role: "ai",
+
+          content:
+            "Something went wrong.",
+        };
+
+        const finalMessages: Message[] =
+          [
+            ...updatedMessages,
+            errorMessage,
+          ];
+
+        setMessages(
+          finalMessages
+        );
+
+        updateChatSession(
+          finalMessages
+        );
+
+      } finally {
+
+        setLoading(false);
+      }
+    };
+
+    const handleSuggestedQuestion = (
+  selectedQuestion: string
+) => {
+
+  setQuestion(selectedQuestion);
+
+};
 
   return (
 
-    <div className="flex h-screen w-full bg-[#020617] overflow-hidden">
+    <main className="flex h-screen overflow-hidden w-full">
+
+      {/* SIDEBAR */}
 
       <Sidebar
-        chatSessions={chatSessions}
-        currentChatId={currentChatId}
-        onSelectChat={(chat) => {
-
-          setCurrentChatId(chat.id);
-
-          setMessages(chat.messages);
-        }}
+        chatSessions={
+          chatSessions
+        }
+        currentChatId={
+          currentChatId
+        }
+        onSelectChat={
+          handleSelectChat
+        }
+        onNewChat={
+          createNewChat
+        }
       />
 
-      <div className="flex-1 flex flex-col overflow-hidden">
+      {/* MAIN CONTENT */}
 
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="border-b border-white/10 backdrop-blur-xl bg-white/5 px-10 py-6"
+      <section
+        className="
+          flex-1
+          flex
+          flex-col
+          bg-[#020817]
+          overflow-hidden
+        "
+      >
+
+        {/* HEADER */}
+
+        <div
+          className="
+            border-b
+            border-white/10
+            p-8
+            bg-[#0b1120]
+            shrink-0
+          "
         >
 
-          <div className="flex items-center justify-between">
+          <div className="flex items-start justify-between">
 
             <div>
-              <h1 className="text-3xl font-bold text-white tracking-tight">
-                AI Repository Assistant
+
+              <h1
+                className="
+                  text-5xl
+                  font-bold
+                  text-white
+                  tracking-tight
+                "
+              >
+
+                AI Repository
+                Assistant
+
               </h1>
 
-              <p className="text-zinc-400 mt-2 text-sm">
-                Analyze repositories using RAG + Groq + ChromaDB
+              <p
+                className="
+                  text-zinc-400
+                  mt-3
+                  text-lg
+                "
+              >
+
+                Analyze repositories
+                using RAG + Groq +
+                ChromaDB
+
               </p>
-            </div>
-
-            <div className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 px-4 py-2 rounded-full">
-
-              <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
-
-              <span className="text-emerald-300 text-sm font-medium">
-                AI Online
-              </span>
 
             </div>
+
+            <div
+              className="
+                px-5
+                py-3
+                rounded-full
+                bg-emerald-500/10
+                border
+                border-emerald-500/20
+                text-emerald-400
+                flex
+                items-center
+                gap-3
+              "
+            >
+
+              <div
+                className="
+                  w-3
+                  h-3
+                  rounded-full
+                  bg-emerald-400
+                  animate-pulse
+                "
+              />
+
+              AI Online
+
+            </div>
+
           </div>
-        </motion.div>
 
-        {/* Repository Input */}
-        <div className="px-10 py-6 border-b border-white/10">
+        </div>
 
-          <div className="flex gap-4">
+        {/* REPO INPUT */}
+
+        <div
+          className="
+            p-8
+            border-b
+            border-white/10
+            shrink-0
+          "
+        >
+
+          <div className="flex gap-5">
 
             <input
               type="text"
               placeholder="Enter GitHub repository URL..."
               value={repoUrl}
               onChange={(e) =>
-                setRepoUrl(e.target.value)
+                setRepoUrl(
+                  e.target.value
+                )
               }
-              className="flex-1 bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white outline-none focus:border-blue-500"
+              className="
+                flex-1
+                px-6
+                py-5
+                rounded-3xl
+                bg-white/5
+                border
+                border-white/10
+                text-white
+                placeholder:text-zinc-500
+                outline-none
+                focus:border-blue-500
+                transition-all
+                text-lg
+              "
             />
 
             <button
-              onClick={analyzeRepository}
+              onClick={
+                handleAnalyzeRepository
+              }
               disabled={loading}
-              className="px-6 py-4 rounded-2xl bg-gradient-to-r from-blue-500 to-purple-600 hover:scale-105 transition-all duration-300 font-medium text-white"
+              className="
+                px-8
+                py-5
+                rounded-3xl
+                bg-gradient-to-r
+                from-blue-500
+                to-purple-600
+                text-white
+                font-semibold
+                hover:scale-105
+                transition-all
+                disabled:opacity-50
+                flex
+                items-center
+                gap-3
+              "
             >
 
               {loading ? (
-                <Loader2 className="animate-spin" />
+                <Loader2
+                  className="
+                    animate-spin
+                  "
+                />
               ) : (
-                "Analyze"
+                <>
+                  <Sparkles size={20} />
+                  Analyze
+                </>
               )}
 
             </button>
 
           </div>
+
         </div>
 
-        {/* Messages */}
-        <div className="flex-1 overflow-y-auto px-10 py-8 space-y-6">
+        {/* CHAT AREA */}
 
-          {messages.length === 0 && (
+        <div
+          className="
+            flex-1
+            overflow-y-auto
+            px-8
+            py-8
+            space-y-8
+          "
+        >
 
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="max-w-3xl"
-            >
+          {messages.map(
+            (
+              message,
+              index
+            ) => (
 
-              <div className="bg-white/5 border border-white/10 backdrop-blur-xl rounded-3xl p-6">
+              <div
+                key={index}
+                className={`
+                  max-w-5xl
+                  rounded-3xl
+                  p-8
+                  border
+                  ${
+                    message.role ===
+                    "user"
+                      ? `
+                        ml-auto
+                        bg-blue-500/10
+                        border-blue-500/20
+                      `
+                      : `
+                        bg-white/5
+                        border-white/10
+                      `
+                  }
+                `}
+              >
 
-                <div className="flex items-center gap-3 mb-4">
+                <MarkdownRenderer
+                  content={
+                    message.content
+                  }
+                />
 
-                  <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-
-                    <Sparkles className="w-5 h-5 text-white" />
-
-                  </div>
-
-                  <div>
-
-                    <h3 className="font-semibold text-white">
-                      AI Assistant
-                    </h3>
-
-                    <p className="text-xs text-zinc-400">
-                      Powered by semantic search
-                    </p>
-
-                  </div>
-                </div>
-
-                <p className="text-zinc-300 leading-relaxed">
-                  Analyze any GitHub repository and ask architecture,
-                  implementation, workflow, and business logic questions.
-                </p>
-
-              </div>
-            </motion.div>
-          )}
-
-          {messages.map((message, index) => (
-
-            <motion.div
-              key={index}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className={`max-w-4xl rounded-3xl p-5 border ${
-                message.role === "user"
-                  ? "ml-auto bg-blue-500/10 border-blue-500/20"
-                  : "bg-white/5 border-white/10"
-              }`}
-            >
-
-              <div className="text-zinc-100 whitespace-pre-wrap leading-relaxed">
-
-                <MarkdownRenderer content={message.content} />
+                {/* SOURCES */}
 
                 {message.sources &&
-                  message.sources.length > 0 && (
+                  message.sources
+                    .length > 0 && (
 
-                    <div className="mt-4 border-t border-white/10 pt-3">
+                    <div
+                      className="
+                        mt-6
+                        pt-5
+                        border-t
+                        border-white/10
+                      "
+                    >
 
-                      <p className="text-xs text-zinc-400 mb-2">
+                      <h3
+                        className="
+                          text-sm
+                          font-semibold
+                          text-zinc-400
+                          mb-3
+                        "
+                      >
+
                         Sources
-                      </p>
 
-                      <div className="flex flex-wrap gap-2">
+                      </h3>
 
-                        {message.sources.map((source, index) => (
+                      <div className="space-y-3">
 
-                          <button
-                            key={index}
-                            onClick={() => setSelectedSource(source)}
-                            className="
-                              text-xs
-                              bg-white/5
-                              hover:bg-blue-500/20
-                              border border-white/10
-                              px-3 py-1
-                              rounded-full
-                              text-zinc-300
-                              transition
-                            "
-                          >
+                        {message.sources.map(
+                          (
+                            source: any,
+                            idx: number
+                          ) => (
 
-                            {source.file}
+                            <div
+                              key={idx}
+                              className="
+                                p-4
+                                rounded-2xl
+                                bg-white/5
+                                border
+                                border-white/10
+                              "
+                            >
 
-                          </button>
+                              <p
+                                className="
+                                  text-blue-400
+                                  font-medium
+                                  text-sm
+                                "
+                              >
 
-                        ))}
+                                {
+                                  source.file
+                                }
+
+                              </p>
+
+                              <p
+                                className="
+                                  text-zinc-400
+                                  text-sm
+                                  mt-2
+                                  line-clamp-4
+                                "
+                              >
+
+                                {
+                                  source.content
+                                }
+
+                              </p>
+
+                            </div>
+
+                          )
+                        )}
 
                       </div>
 
@@ -436,133 +738,148 @@ export default function ChatSection() {
 
               </div>
 
-            </motion.div>
-          ))}
-
-          {typing && (
-
-            <div className="bg-white/5 border border-white/10 rounded-3xl w-fit p-4">
-              <TypingIndicator />
-            </div>
-
+            )
           )}
 
+          {loading && (
+            <TypingIndicator />
+          )}
+
+          <div
+            ref={messagesEndRef}
+          />
+
         </div>
 
-        {/* Input */}
-        <div className="border-t border-white/10 backdrop-blur-xl bg-white/5 px-10 py-6">
+        {/* SUGGESTED QUESTIONS */}
 
-          <div className="max-w-5xl mx-auto">
+{isAnalyzed && (
 
-            <div className="flex items-end gap-4 bg-white/5 border border-white/10 rounded-3xl p-4">
+  <div
+    className="
+      px-8
+      pb-4
+      flex
+      flex-wrap
+      gap-3
+    "
+  >
 
-              <textarea
-                rows={1}
-                value={question}
-                onChange={(e) =>
-                  setQuestion(e.target.value)
-                }
-                placeholder="Ask anything about the repository..."
-                className="flex-1 bg-transparent text-white placeholder:text-zinc-500 resize-none outline-none text-base"
-              />
+    {suggestedQuestions.map(
+      (item, index) => (
 
-              <button
-                onClick={askQuestion}
-                disabled={!repoAnalyzed || loading}
-                className="w-12 h-12 rounded-2xl bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center hover:scale-105 transition-all duration-300 disabled:opacity-50"
-              >
-
-                {loading ? (
-                  <Loader2 className="w-5 h-5 text-white animate-spin" />
-                ) : (
-                  <ArrowUp className="w-5 h-5 text-white" />
-                )}
-
-              </button>
-
-            </div>
-
-            <p className="text-center text-xs text-zinc-500 mt-4">
-              AI responses are generated using repository context and semantic retrieval.
-            </p>
-
-          </div>
-        </div>
-
-      </div>
-
-      {/* Source Modal */}
-      {selectedSource && (
-
-        <div
+        <button
+          key={index}
+          onClick={() =>
+            handleSuggestedQuestion(item)
+          }
           className="
-            fixed inset-0
-            bg-black/70
-            backdrop-blur-sm
-            flex items-center justify-center
-            z-50
-            p-6
+            px-4
+            py-2
+            rounded-2xl
+            bg-white/5
+            border
+            border-white/10
+            text-sm
+            text-zinc-300
+            hover:bg-blue-500/10
+            hover:border-blue-500/30
+            hover:text-white
+            transition-all
           "
         >
 
-          <div
-            className="
-              bg-[#0f172a]
-              border border-white/10
-              rounded-2xl
-              w-full
-              max-w-4xl
-              max-h-[80vh]
-              overflow-hidden
-            "
-          >
+          {item}
 
-            {/* Header */}
-            <div
+        </button>
+
+      )
+    )}
+
+  </div>
+
+)}
+
+        {/* INPUT */}
+
+        <div
+          className="
+            p-8
+            border-t
+            border-white/10
+            bg-[#0b1120]
+            shrink-0
+          "
+        >
+
+          <div className="flex gap-5">
+
+            <input
+              type="text"
+              placeholder="Ask anything about the repository..."
+              value={question}
+              onChange={(e) =>
+                setQuestion(
+                  e.target.value
+                )
+              }
+              onKeyDown={(e) => {
+
+                if (
+                  e.key === "Enter"
+                ) {
+
+                  handleAskQuestion();
+                }
+              }}
               className="
-                flex items-center justify-between
-                px-6 py-4
-                border-b border-white/10
+                flex-1
+                px-6
+                py-5
+                rounded-3xl
+                bg-white/5
+                border
+                border-white/10
+                text-white
+                placeholder:text-zinc-500
+                outline-none
+                focus:border-blue-500
+                transition-all
+                text-lg
+              "
+            />
+
+            <button
+              onClick={
+                handleAskQuestion
+              }
+              disabled={loading}
+              className="
+                w-16
+                h-16
+                rounded-3xl
+                bg-gradient-to-r
+                from-blue-500
+                to-purple-600
+                text-white
+                flex
+                items-center
+                justify-center
+                hover:scale-105
+                transition-all
               "
             >
 
-              <h2 className="text-lg font-semibold text-white">
-                {selectedSource.file}
-              </h2>
+              <Send size={20} />
 
-              <button
-                onClick={() => setSelectedSource(null)}
-                className="
-                  text-zinc-400
-                  hover:text-white
-                  transition
-                "
-              >
-                ✕
-              </button>
-
-            </div>
-
-            {/* Content */}
-            <div
-              className="
-                p-6
-                overflow-y-auto
-                max-h-[70vh]
-              "
-            >
-
-              <MarkdownRenderer
-                content={`\`\`\`python\n${selectedSource.content}\n\`\`\``}
-              />
-
-            </div>
+            </button>
 
           </div>
 
         </div>
-      )}
 
-    </div>
+      </section>
+
+    </main>
   );
 }

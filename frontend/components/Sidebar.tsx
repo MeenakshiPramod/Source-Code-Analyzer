@@ -1,11 +1,11 @@
 "use client";
 
-import { MessageSquare } from "lucide-react";
+import { MessageSquarePlus } from "lucide-react";
 
 import { ChatSession }
 from "@/types/chat";
 
-interface Props {
+interface SidebarProps {
 
   chatSessions: ChatSession[];
 
@@ -14,6 +14,8 @@ interface Props {
   onSelectChat: (
     chat: ChatSession
   ) => void;
+
+  onNewChat: () => void;
 }
 
 export default function Sidebar({
@@ -24,23 +26,25 @@ export default function Sidebar({
 
   onSelectChat,
 
-}: Props) {
+  onNewChat,
+
+}: SidebarProps) {
 
   return (
 
-    <div
+    <aside
       className="
-        w-80
-        h-screen
+        w-[340px]
+        bg-[#07111f]
         border-r
         border-white/10
-        bg-[#0B1120]
         flex
         flex-col
       "
     >
 
-      {/* Header */}
+      {/* HEADER */}
+
       <div
         className="
           p-6
@@ -51,21 +55,22 @@ export default function Sidebar({
 
         <h1
           className="
-            text-2xl
+            text-4xl
             font-bold
             text-white
+            leading-tight
           "
         >
 
-          AI Repo Assistant
+          AI Repo
+          Assistant
 
         </h1>
 
         <p
           className="
             text-zinc-400
-            text-sm
-            mt-1
+            mt-2
           "
         >
 
@@ -75,106 +80,116 @@ export default function Sidebar({
 
       </div>
 
-      {/* Chat List */}
+      {/* NEW CHAT */}
+
+      <div className="p-4">
+
+        <button
+          onClick={onNewChat}
+          className="
+            w-full
+            flex
+            items-center
+            justify-center
+            gap-3
+            py-4
+            rounded-2xl
+            bg-gradient-to-r
+            from-blue-500
+            to-purple-600
+            text-white
+            font-semibold
+            hover:scale-[1.02]
+            transition-all
+          "
+        >
+
+          <MessageSquarePlus
+            size={20}
+          />
+
+          New Chat
+
+        </button>
+
+      </div>
+
+      {/* CHAT LIST */}
+
       <div
         className="
           flex-1
           overflow-y-auto
-          p-4
+          px-4
+          pb-4
           space-y-3
         "
       >
 
-        {chatSessions.map((chat) => (
+        {chatSessions.map(
+          (chat) => (
 
-          <button
-            key={chat.id}
-
-            onClick={() =>
-              onSelectChat(chat)
-            }
-
-            className={`
-              w-full
-              text-left
-              p-4
-              rounded-2xl
-              border
-              transition-all
-
-              ${
-                currentChatId ===
-                chat.id
-                  ? `
-                    bg-blue-500/20
-                    border-blue-500/30
-                  `
-                  : `
-                    bg-white/5
-                    border-white/10
-                    hover:bg-white/10
-                  `
+            <button
+              key={chat.id}
+              onClick={() =>
+                onSelectChat(chat)
               }
-            `}
-          >
-
-            <div
-              className="
-                flex
-                items-center
-                gap-3
-              "
+              className={`
+                w-full
+                text-left
+                p-5
+                rounded-2xl
+                border
+                transition-all
+                ${
+                  currentChatId ===
+                  chat.id
+                    ? `
+                      bg-blue-500/20
+                      border-blue-500/30
+                    `
+                    : `
+                      bg-white/5
+                      border-white/10
+                      hover:bg-white/10
+                    `
+                }
+              `}
             >
 
-              <MessageSquare
-                size={18}
+              <h3
                 className="
-                  text-blue-400
+                  text-white
+                  font-medium
+                  truncate
                 "
-              />
+              >
 
-              <div>
+                {chat.title}
 
-                <p
-                  className="
-                    text-sm
-                    font-medium
-                    text-white
-                    truncate
-                  "
-                >
+              </h3>
 
-                  {chat.title}
+              <p
+                className="
+                  text-zinc-400
+                  text-sm
+                  mt-2
+                "
+              >
 
-                </p>
+                {new Date(
+                  chat.createdAt
+                ).toLocaleDateString()}
 
-                <p
-                  className="
-                    text-xs
-                    text-zinc-400
-                    mt-1
-                  "
-                >
+              </p>
 
-                  {
-                    new Date(
-                      chat.createdAt
-                    ).toLocaleDateString()
-                  }
+            </button>
 
-                </p>
-
-              </div>
-
-            </div>
-
-          </button>
-
-        ))}
+          )
+        )}
 
       </div>
 
-    </div>
-
+    </aside>
   );
 }
