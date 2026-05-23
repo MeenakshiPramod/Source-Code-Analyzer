@@ -84,9 +84,34 @@ def analyze():
         qa_chain = create_qa_chain(retriever)
 
         return jsonify({
-            "message": "Repository analyzed successfully ✅",
-            "total_chunks": len(chunks)
-        })
+
+    "message": "Repository analyzed successfully ",
+
+    "repo_name": repo_name,
+
+    "total_chunks": len(chunks),
+
+    "total_files": len(documents),
+
+    "primary_language": "Python",
+
+    "framework": "Flask",
+
+    "technologies": [
+
+        "Flask",
+
+        "Python",
+
+        "Jinja2",
+
+        "Werkzeug",
+
+        "Click"
+
+    ]
+
+})
 
     except Exception as e:
 

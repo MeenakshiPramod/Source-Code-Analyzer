@@ -8,6 +8,9 @@ import MarkdownRenderer from "./MarkdownRenderer";
 
 import TypingIndicator from "./TypingIndicator";
 
+import RepositoryDashboard
+from "./RepositoryDashboard";
+
 import {
   analyzeRepository,
   askQuestion,
@@ -61,6 +64,9 @@ export default function ChatSection() {
   const [isAnalyzed, setIsAnalyzed] =
     useState(false);
 
+  const [repositoryStats, setRepositoryStats] =
+    useState<any>(null);
+
   const [chatSessions, setChatSessions] =
     useState<ChatSession[]>([]);
 
@@ -69,6 +75,8 @@ export default function ChatSection() {
 
   const messagesEndRef =
     useRef<HTMLDivElement>(null);
+
+  
 
   // =========================
   // LOAD CHATS
@@ -260,6 +268,28 @@ export default function ChatSection() {
             .pop() ||
             "Repository"
         );
+
+        setRepositoryStats({
+
+          repoName:
+            response.repo_name,
+
+          totalChunks:
+            response.total_chunks,
+
+          totalFiles:
+            response.total_files,
+
+          primaryLanguage:
+            response.primary_language,
+
+          framework:
+            response.framework,
+
+          detectedTechnologies:
+            response.technologies,
+
+        });
 
         setIsAnalyzed(true);
 
@@ -613,6 +643,19 @@ export default function ChatSection() {
             space-y-8
           "
         >
+
+          {/* REPOSITORY DASHBOARD */}
+
+          {repositoryStats && (
+
+            <RepositoryDashboard
+              stats={repositoryStats}
+            />
+
+          )}
+
+          {/* CHAT MESSAGES */}
+
 
           {messages.map(
             (
