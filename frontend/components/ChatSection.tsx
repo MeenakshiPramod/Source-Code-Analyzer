@@ -27,21 +27,8 @@ import {
   Message,
 } from "@/types/chat";
 
-const suggestedQuestions = [
-
-  "Explain project architecture",
-
-  "What technologies are used?",
-
-  "Explain Flask routing",
-
-  "Show folder structure",
-
-  "Explain authentication flow",
-
-  "What are the important modules?",
-
-];
+import { typeWriterEffect }
+from "@/utils/typewriter";
 
 export default function ChatSection() {
 
@@ -61,11 +48,11 @@ export default function ChatSection() {
   const [loading, setLoading] =
     useState(false);
 
-  const [isAnalyzed, setIsAnalyzed] =
+  const [typing, setTyping] =
     useState(false);
 
-  const [repositoryStats, setRepositoryStats] =
-    useState<any>(null);
+  const [repoAnalyzed, setRepoAnalyzed] =
+    useState(false);
 
   const [chatSessions, setChatSessions] =
     useState<ChatSession[]>([]);
@@ -73,10 +60,31 @@ export default function ChatSection() {
   const [currentChatId, setCurrentChatId] =
     useState("");
 
+  const [repositoryStats, setRepositoryStats] =
+    useState<any>(null);
+
   const messagesEndRef =
     useRef<HTMLDivElement>(null);
 
-  
+  // =========================
+  // SUGGESTED QUESTIONS
+  // =========================
+
+  const suggestedQuestions = [
+
+    "Explain repository architecture",
+
+    "What are the main API routes?",
+
+    "How does authentication work?",
+
+    "Explain database interactions?",
+
+    "Which files are most important?",
+
+    "Explain the project workflow",
+
+  ];
 
   // =========================
   // LOAD CHATS
@@ -108,6 +116,7 @@ export default function ChatSection() {
         setMessages(
           firstChat.messages
         );
+
       }
     }
 
@@ -171,24 +180,9 @@ export default function ChatSection() {
 
     setQuestion("");
 
-    setIsAnalyzed(false);
-  };
+    setRepoAnalyzed(false);
 
-  // =========================
-  // SELECT CHAT
-  // =========================
-
-  const handleSelectChat = (
-    chat: ChatSession
-  ) => {
-
-    setCurrentChatId(chat.id);
-
-    setMessages(chat.messages);
-
-    setIsAnalyzed(
-      chat.messages.length > 0
-    );
+    setRepositoryStats(null);
   };
 
   // =========================
@@ -225,6 +219,23 @@ export default function ChatSection() {
   };
 
   // =========================
+  // SELECT CHAT
+  // =========================
+
+  const handleSelectChat = (
+    chat: ChatSession
+  ) => {
+
+    setCurrentChatId(chat.id);
+
+    setMessages(chat.messages);
+
+    setRepoAnalyzed(
+      chat.messages.length > 0
+    );
+  };
+
+  // =========================
   // ANALYZE REPOSITORY
   // =========================
 
@@ -234,6 +245,16 @@ export default function ChatSection() {
       if (!repoUrl.trim())
         return;
 
+      // IMPORTANT FIX
+      // Create chat ONLY if none exists
+
+      if (!currentChatId) {
+
+        createNewChat();
+
+        return;
+      }
+
       setLoading(true);
 
       try {
@@ -242,6 +263,30 @@ export default function ChatSection() {
           await analyzeRepository(
             repoUrl
           );
+
+        // DASHBOARD DATA
+
+        setRepositoryStats({
+
+          repoName:
+            response.repo_name,
+
+          totalChunks:
+            response.total_chunks,
+
+          totalFiles:
+            response.total_files,
+
+          primaryLanguage:
+            response.primary_language,
+
+          framework:
+            response.framework,
+
+          detectedTechnologies:
+            response.technologies,
+
+        });
 
         const aiMessage: Message = {
 
@@ -269,29 +314,7 @@ export default function ChatSection() {
             "Repository"
         );
 
-        setRepositoryStats({
-
-          repoName:
-            response.repo_name,
-
-          totalChunks:
-            response.total_chunks,
-
-          totalFiles:
-            response.total_files,
-
-          primaryLanguage:
-            response.primary_language,
-
-          framework:
-            response.framework,
-
-          detectedTechnologies:
-            response.technologies,
-
-        });
-
-        setIsAnalyzed(true);
+        setRepoAnalyzed(true);
 
       } catch (error) {
 
@@ -328,28 +351,26 @@ export default function ChatSection() {
   // =========================
 
   const handleAskQuestion =
-    async () => {
+    async (
+      customQuestion?: string
+    ) => {
+
+      const finalQuestion =
+        customQuestion || question;
 
       if (
-        !question.trim() ||
-        !isAnalyzed
+        !finalQuestion.trim() ||
+        !repoAnalyzed
       ) {
         return;
       }
-
-      const currentQuestion =
-        question;
 
       const userMessage: Message = {
 
         role: "user",
 
-        content: currentQuestion,
+        content: finalQuestion,
       };
-
-      // IMPORTANT FIX
-      // Use functional update
-      // to avoid stale state
 
       const updatedMessages: Message[] =
         [
@@ -373,33 +394,65 @@ export default function ChatSection() {
 
         const response =
           await askQuestion(
-            currentQuestion
+            finalQuestion
           );
 
-        const aiMessage: Message = {
+        setTyping(true);
+
+        const aiPlaceholder: Message = {
 
           role: "ai",
 
-          content:
-            response.answer,
+          content: "",
 
           sources:
             response.sources || [],
         };
 
-        const finalMessages: Message[] =
-          [
-            ...updatedMessages,
-            aiMessage,
-          ];
+        const streamingMessages = [
+
+          ...updatedMessages,
+
+          aiPlaceholder,
+        ];
 
         setMessages(
-          finalMessages
+          streamingMessages
         );
 
-        updateChatSession(
-          finalMessages
+        await typeWriterEffect(
+
+          response.answer,
+
+          (partialText) => {
+
+            const updatedStreamingMessages: Message[] = [
+
+              ...updatedMessages,
+
+              {
+                role: "ai" as const,
+
+                content: partialText,
+
+                sources:
+                  response.sources || [],
+              },
+
+            ];
+
+            setMessages(
+              updatedStreamingMessages
+            );
+
+            updateChatSession(
+              updatedStreamingMessages
+            );
+          }
+
         );
+
+        setTyping(false);
 
       } catch (error) {
 
@@ -431,13 +484,19 @@ export default function ChatSection() {
       }
     };
 
-    const handleSuggestedQuestion = (
-  selectedQuestion: string
-) => {
+  // =========================
+  // SUGGESTED QUESTION CLICK
+  // =========================
 
-  setQuestion(selectedQuestion);
+  const handleSuggestedQuestion = (
+    selectedQuestion: string
+  ) => {
 
-};
+    setQuestion(
+      selectedQuestion
+    );
+
+  };
 
   return (
 
@@ -656,7 +715,6 @@ export default function ChatSection() {
 
           {/* CHAT MESSAGES */}
 
-
           {messages.map(
             (
               message,
@@ -784,8 +842,10 @@ export default function ChatSection() {
             )
           )}
 
-          {loading && (
+          {typing && (
+
             <TypingIndicator />
+
           )}
 
           <div
@@ -796,52 +856,46 @@ export default function ChatSection() {
 
         {/* SUGGESTED QUESTIONS */}
 
-{isAnalyzed && (
+        {repoAnalyzed && (
 
-  <div
-    className="
-      px-8
-      pb-4
-      flex
-      flex-wrap
-      gap-3
-    "
-  >
+          <div className="px-8 pb-4 flex flex-wrap gap-3">
 
-    {suggestedQuestions.map(
-      (item, index) => (
+            {suggestedQuestions.map(
+              (
+                item,
+                index
+              ) => (
 
-        <button
-          key={index}
-          onClick={() =>
-            handleSuggestedQuestion(item)
-          }
-          className="
-            px-4
-            py-2
-            rounded-2xl
-            bg-white/5
-            border
-            border-white/10
-            text-sm
-            text-zinc-300
-            hover:bg-blue-500/10
-            hover:border-blue-500/30
-            hover:text-white
-            transition-all
-          "
-        >
+                <button
+                  key={index}
+                  onClick={() =>
+                    handleSuggestedQuestion(item)
+                  }
+                  className="
+                    px-4
+                    py-2
+                    rounded-2xl
+                    bg-white/5
+                    border
+                    border-white/10
+                    text-sm
+                    text-zinc-300
+                    hover:bg-blue-500/10
+                    hover:border-blue-500/30
+                    transition-all
+                  "
+                >
 
-          {item}
+                  {item}
 
-        </button>
+                </button>
 
-      )
-    )}
+              )
+            )}
 
-  </div>
+          </div>
 
-)}
+        )}
 
         {/* INPUT */}
 
@@ -893,8 +947,8 @@ export default function ChatSection() {
             />
 
             <button
-              onClick={
-                handleAskQuestion
+              onClick={() =>
+                handleAskQuestion()
               }
               disabled={loading}
               className="

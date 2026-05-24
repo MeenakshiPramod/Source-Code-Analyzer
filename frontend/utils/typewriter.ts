@@ -1,6 +1,13 @@
 export async function typeWriterEffect(
+
   text: string,
-  callback: (value: string) => void
+
+  onUpdate: (
+    partialText: string
+  ) => void,
+
+  speed = 8
+
 ) {
 
   let currentText = "";
@@ -9,10 +16,10 @@ export async function typeWriterEffect(
 
     currentText += text[i];
 
-    callback(currentText);
+    onUpdate(currentText);
 
     await new Promise((resolve) =>
-      setTimeout(resolve, 8)
+      setTimeout(resolve, speed)
     );
   }
 }
