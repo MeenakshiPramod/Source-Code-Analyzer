@@ -1,6 +1,10 @@
 "use client";
 
-import { MessageSquarePlus } from "lucide-react";
+import {
+  MessageSquare,
+  MessageSquarePlus,
+  Trash2,
+} from "lucide-react";
 
 import { ChatSession }
 from "@/types/chat";
@@ -16,6 +20,10 @@ interface SidebarProps {
   ) => void;
 
   onNewChat: () => void;
+
+  onDeleteChat: (
+    id: string
+  ) => void;
 }
 
 export default function Sidebar({
@@ -27,6 +35,8 @@ export default function Sidebar({
   onSelectChat,
 
   onNewChat,
+
+  onDeleteChat,
 
 }: SidebarProps) {
 
@@ -85,7 +95,9 @@ export default function Sidebar({
       <div className="p-4">
 
         <button
+
           onClick={onNewChat}
+
           className="
             w-full
             flex
@@ -129,61 +141,135 @@ export default function Sidebar({
         {chatSessions.map(
           (chat) => (
 
-            <button
+            <div
               key={chat.id}
-              onClick={() =>
-                onSelectChat(chat)
-              }
-              className={`
-                w-full
-                text-left
-                p-5
-                rounded-2xl
-                border
-                transition-all
-                ${
-                  currentChatId ===
-                  chat.id
-                    ? `
-                      bg-blue-500/20
-                      border-blue-500/30
-                    `
-                    : `
-                      bg-white/5
-                      border-white/10
-                      hover:bg-white/10
-                    `
-                }
-              `}
+              className="
+                group
+                relative
+              "
             >
 
-              <h3
+              {/* CHAT BUTTON */}
+
+              <button
+
+                onClick={() =>
+                  onSelectChat(chat)
+                }
+
+                className={`
+                  w-full
+                  p-5
+                  rounded-2xl
+                  border
+                  transition-all
+                  duration-300
+                  text-left
+
+                  ${
+                    currentChatId ===
+                    chat.id
+                      ? `
+                        bg-blue-500/20
+                        border-blue-500/30
+                      `
+                      : `
+                        bg-white/5
+                        border-white/10
+                        hover:bg-white/10
+                      `
+                  }
+                `}
+              >
+
+                <div className="flex items-start gap-3">
+
+                  <div
+                    className="
+                      mt-1
+                      text-blue-400
+                    "
+                  >
+
+                    <MessageSquare
+                      size={18}
+                    />
+
+                  </div>
+
+                  <div
+                    className="
+                      flex-1
+                      min-w-0
+                    "
+                  >
+
+                    <h3
+                      className="
+                        text-white
+                        font-medium
+                        truncate
+                      "
+                    >
+
+                      {chat.title}
+
+                    </h3>
+
+                    <p
+                      className="
+                        text-zinc-400
+                        text-sm
+                        mt-2
+                      "
+                    >
+
+                      {new Date(
+                        chat.createdAt
+                      ).toLocaleDateString()}
+
+                    </p>
+
+                  </div>
+
+                </div>
+
+              </button>
+
+              {/* DELETE BUTTON */}
+
+              <button
+
+                onClick={(e) => {
+
+                  e.stopPropagation();
+
+                  onDeleteChat(
+                    chat.id
+                  );
+                }}
+
                 className="
-                  text-white
-                  font-medium
-                  truncate
+                  absolute
+                  top-4
+                  right-4
+                  opacity-0
+                  group-hover:opacity-100
+                  transition-all
+                  duration-300
+                  p-2
+                  rounded-lg
+                  bg-red-500/10
+                  hover:bg-red-500/20
+                  text-red-400
                 "
               >
 
-                {chat.title}
+                <Trash2 size={16} />
 
-              </h3>
+              </button>
 
-              <p
-                className="
-                  text-zinc-400
-                  text-sm
-                  mt-2
-                "
-              >
-
-                {new Date(
-                  chat.createdAt
-                ).toLocaleDateString()}
-
-              </p>
-
-            </button>
+            </div>
 
           )
         )}

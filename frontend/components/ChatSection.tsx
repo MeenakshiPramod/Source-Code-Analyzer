@@ -185,6 +185,47 @@ export default function ChatSection() {
     setRepositoryStats(null);
   };
 
+  const deleteChat = (
+  chatId: string
+) => {
+
+  const updatedChats =
+    chatSessions.filter(
+      (chat) => chat.id !== chatId
+    );
+
+  setChatSessions(updatedChats);
+
+  localStorage.setItem(
+    "ai-repo-chats",
+    JSON.stringify(updatedChats)
+  );
+
+  // If current chat deleted
+  if (chatId === currentChatId) {
+
+    if (updatedChats.length > 0) {
+
+      const latestChat =
+        updatedChats[0];
+
+      setCurrentChatId(
+        latestChat.id
+      );
+
+      setMessages(
+        latestChat.messages
+      );
+
+    } else {
+
+      setCurrentChatId("");
+
+      setMessages([]);
+    }
+  }
+};
+
   // =========================
   // UPDATE CHAT SESSION
   // =========================
@@ -505,18 +546,11 @@ export default function ChatSection() {
       {/* SIDEBAR */}
 
       <Sidebar
-        chatSessions={
-          chatSessions
-        }
-        currentChatId={
-          currentChatId
-        }
-        onSelectChat={
-          handleSelectChat
-        }
-        onNewChat={
-          createNewChat
-        }
+        chatSessions={chatSessions}
+        currentChatId={currentChatId}
+        onSelectChat={handleSelectChat}
+        onNewChat={createNewChat}
+        onDeleteChat={deleteChat}
       />
 
       {/* MAIN CONTENT */}
