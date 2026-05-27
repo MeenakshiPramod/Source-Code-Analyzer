@@ -24,6 +24,8 @@ interface SidebarProps {
   onDeleteChat: (
     id: string
   ) => void;
+
+  onClearChats: () => void;
 }
 
 export default function Sidebar({
@@ -37,6 +39,8 @@ export default function Sidebar({
   onNewChat,
 
   onDeleteChat,
+
+  onClearChats,
 
 }: SidebarProps) {
 
@@ -121,6 +125,50 @@ export default function Sidebar({
           />
 
           New Chat
+
+        </button>
+
+      </div>
+
+
+      {/* CLEAR ALL */}
+
+      <div className="px-4 pb-2">
+
+        <button
+
+          onClick={() => {
+
+            const confirmed =
+              window.confirm(
+                "Delete all chats?"
+              );
+
+            if (confirmed) {
+              onClearChats();
+            }
+          }}
+
+          className="
+            w-full
+            flex
+            items-center
+            justify-center
+            gap-2
+            py-3
+            rounded-xl
+            border
+            border-red-500/20
+            bg-red-500/10
+            hover:bg-red-500/20
+            text-red-400
+            transition-all
+          "
+        >
+
+          <Trash2 size={18} />
+
+          Clear All Chats
 
         </button>
 

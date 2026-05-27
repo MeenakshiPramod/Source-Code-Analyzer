@@ -539,6 +539,64 @@ export default function ChatSection() {
 
   };
 
+  const handleDeleteChat = (
+  id: string
+) => {
+
+  const updatedChats =
+    chatSessions.filter(
+      (chat) => chat.id !== id
+    );
+
+  setChatSessions(
+    updatedChats
+  );
+
+  localStorage.setItem(
+    "ai-repo-chats",
+    JSON.stringify(updatedChats)
+  );
+
+  // If deleted chat is current chat
+  if (currentChatId === id) {
+
+    if (
+      updatedChats.length > 0
+    ) {
+
+      const latestChat =
+        updatedChats[0];
+
+      setCurrentChatId(
+        latestChat.id
+      );
+
+      setMessages(
+        latestChat.messages
+      );
+
+    } else {
+
+      setCurrentChatId("");
+
+      setMessages([]);
+    }
+  }
+};
+
+  const handleClearChats = () => {
+
+  setChatSessions([]);
+
+  setMessages([]);
+
+  setCurrentChatId("");
+
+  localStorage.removeItem(
+    "ai-repo-chats"
+  );
+};
+
   return (
 
     <main className="flex h-screen overflow-hidden w-full">
@@ -550,7 +608,8 @@ export default function ChatSection() {
         currentChatId={currentChatId}
         onSelectChat={handleSelectChat}
         onNewChat={createNewChat}
-        onDeleteChat={deleteChat}
+        onDeleteChat={handleDeleteChat}
+        onClearChats={handleClearChats}
       />
 
       {/* MAIN CONTENT */}
