@@ -30,6 +30,9 @@ import {
 import { typeWriterEffect }
 from "@/utils/typewriter";
 
+import EmptyState
+from "./EmptyState";
+
 export default function ChatSection() {
 
   // =========================
@@ -790,9 +793,11 @@ export default function ChatSection() {
           className="
             flex-1
             overflow-y-auto
+            min-h-0
             px-8
             py-8
             space-y-8
+            
           "
         >
 
@@ -807,6 +812,12 @@ export default function ChatSection() {
           )}
 
           {/* CHAT MESSAGES */}
+
+          {messages.length === 0 && (
+
+            <EmptyState />
+
+          )}
 
           {messages.map(
             (
