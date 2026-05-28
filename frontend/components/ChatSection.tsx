@@ -69,6 +69,9 @@ export default function ChatSection() {
   const messagesEndRef =
     useRef<HTMLDivElement>(null);
 
+  const [isRepoAnalyzed,setIsRepoAnalyzed] =
+    useState(false);
+
   // =========================
   // SUGGESTED QUESTIONS
   // =========================
@@ -186,6 +189,8 @@ export default function ChatSection() {
     setRepoAnalyzed(false);
 
     setRepositoryStats(null);
+
+    setIsRepoAnalyzed(false);
   };
 
   const deleteChat = (
@@ -307,7 +312,7 @@ export default function ChatSection() {
           await analyzeRepository(
             repoUrl
           );
-
+        setIsRepoAnalyzed(true);
         // DASHBOARD DATA
 
         setRepositoryStats({
@@ -401,6 +406,9 @@ export default function ChatSection() {
 
       const finalQuestion =
         customQuestion || question;
+
+      if (!isRepoAnalyzed)
+      return;
 
       if (
         !finalQuestion.trim() ||
@@ -1024,6 +1032,7 @@ export default function ChatSection() {
                   e.target.value
                 )
               }
+              disabled={!isRepoAnalyzed}
               onKeyDown={(e) => {
 
                 if (
@@ -1051,11 +1060,14 @@ export default function ChatSection() {
             />
 
             <button
+
               onClick={() =>
                 handleAskQuestion()
               }
-              disabled={loading}
-              className="
+
+              disabled={!isRepoAnalyzed}
+
+              className={`
                 w-16
                 h-16
                 rounded-3xl
@@ -1066,9 +1078,19 @@ export default function ChatSection() {
                 flex
                 items-center
                 justify-center
-                hover:scale-105
                 transition-all
-              "
+
+                ${
+                  !isRepoAnalyzed
+                    ? `
+                      opacity-50
+                      cursor-not-allowed
+                    `
+                    : `
+                      hover:scale-105
+                    `
+                }
+              `}
             >
 
               <Send size={20} />
