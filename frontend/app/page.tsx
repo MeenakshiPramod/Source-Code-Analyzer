@@ -4,7 +4,15 @@ export default function Home() {
 
   return (
 
-    <main className="flex h-screen bg-[#020617]">
+    <main
+      className="
+        flex
+        flex-col
+        lg:flex-row
+        min-h-screen
+        overflow-hidden
+      "
+    >
 
       <ChatSection />
 

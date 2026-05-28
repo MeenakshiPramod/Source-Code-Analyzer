@@ -34,3 +34,8 @@ body {
   background: #374151;
   border-radius: 999px;
 }
+
+html,
+body {
+  overflow-x: hidden;
+}

@@ -108,6 +108,7 @@ export default function MarkdownRenderer({
         max-w-none
         text-zinc-100
         leading-relaxed
+        overflow-hidden
       "
     >
 
@@ -140,7 +141,9 @@ export default function MarkdownRenderer({
 
               return (
 
-                <div className="relative my-4">
+                <div className="relative 
+                                my-4
+                                overflow-x-auto">
 
                   <CopyButton
                     text={codeString}
@@ -156,6 +159,7 @@ export default function MarkdownRenderer({
                       border
                       border-white/10
                       text-sm
+                      overflow-x-auto
                     "
                     customStyle={{
                       padding:

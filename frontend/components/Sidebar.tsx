@@ -48,7 +48,7 @@ export default function Sidebar({
 
     <aside
       className="
-        w-[340px]
+        w-full lg:w-[340px]
         bg-[#07111f]
         border-r
         border-white/10
@@ -69,7 +69,7 @@ export default function Sidebar({
 
         <h1
           className="
-            text-4xl
+            text-3xl lg:text-4xl
             font-bold
             text-white
             leading-tight
