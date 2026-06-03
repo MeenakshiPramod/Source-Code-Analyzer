@@ -281,21 +281,18 @@ Explain the project workflow
 
 ## Screenshots
 
-### Repository Analysis
-
-*Add screenshot here*
-
 ### AI Chat Interface
 
-*Add screenshot here*
+<img width="2559" height="1320" alt="image" src="https://github.com/user-attachments/assets/fd0ac139-7dcc-49ef-9f4e-67750542fa34" />
 
-### Source References
 
-*Add screenshot here*
+### Repository Analysis
 
-### Mobile Responsive View
+<img width="2557" height="1311" alt="image" src="https://github.com/user-attachments/assets/085d41cf-56f0-4338-ba72-2409298883cb" />
 
-*Add screenshot here*
+
+
+
 
 ---
 
