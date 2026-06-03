@@ -60,7 +60,7 @@ export default function EmptyState() {
         "
       >
 
-        AI Repository
+        CodeMind AI : Your Repository
         Assistant
 
       </h1>

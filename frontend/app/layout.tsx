@@ -8,8 +8,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Realtime Source Code Analyzer",
-  description: "AI-powered repository understanding",
+  title: "CodeMind AI",
+  description: "Realtime Source Code Analyzer",
 };
 
 export default function RootLayout({

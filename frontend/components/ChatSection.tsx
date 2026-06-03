@@ -474,7 +474,7 @@ export default function ChatSection() {
                   tracking-tight
                 "
               >
-                AI Repository Assistant
+                CodeMind AI
               </h1>
 
               <p
