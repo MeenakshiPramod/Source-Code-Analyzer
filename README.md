@@ -340,9 +340,7 @@ Passionate about:
 * Full Stack Development
 * Problem Solving
 
-LinkedIn: *Add LinkedIn URL*
 
-GitHub: *Add GitHub URL*
 
 ---
 
