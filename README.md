@@ -8,6 +8,22 @@ The platform clones repositories, processes source code, generates vector embedd
 
 ---
 
+## Link to product walkthrough
+
+
+https://github.com/user-attachments/assets/f0515ebc-b719-469c-9152-d64d97025978
+---
+## Screenshots
+
+### AI Chat Interface
+
+<img width="2559" height="1320" alt="image" src="https://github.com/user-attachments/assets/fd0ac139-7dcc-49ef-9f4e-67750542fa34" />
+
+
+### Repository Analysis
+
+<img width="2557" height="1311" alt="image" src="https://github.com/user-attachments/assets/085d41cf-56f0-4338-ba72-2409298883cb" />
+
 ## Features
 
 ### Repository Analysis
@@ -279,22 +295,6 @@ Explain the project workflow
 
 ---
 
-## Screenshots
-
-### AI Chat Interface
-
-<img width="2559" height="1320" alt="image" src="https://github.com/user-attachments/assets/fd0ac139-7dcc-49ef-9f4e-67750542fa34" />
-
-
-### Repository Analysis
-
-<img width="2557" height="1311" alt="image" src="https://github.com/user-attachments/assets/085d41cf-56f0-4338-ba72-2409298883cb" />
-
-
-
-
-
----
 
 ## Key Learnings
 
